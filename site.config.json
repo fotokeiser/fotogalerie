@@ -1,0 +1,15 @@
+{
+  "photographer": "Studio Name",
+  "tagline": "Fotografie",
+  "website": "https://www.example.com",
+  "email": "hallo@example.com",
+  "instagram": "",
+  "siteUrl": "",
+  "downloadBaseUrl": "",
+  "rcloneRemote": "r2:fotogalerie",
+  "outputDir": "docs",
+  "previewSize": 2048,
+  "thumbSize": 1000,
+  "quality": 80,
+  "zipPartMaxGB": 2
+}

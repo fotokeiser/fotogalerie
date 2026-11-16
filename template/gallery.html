@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>{{TITLE}} · {{PHOTOGRAPHER}}</title>
+<meta name="description" content="{{SUBTITLE}} · {{DATE}}">
+<meta property="og:title" content="{{TITLE}}">
+<meta property="og:description" content="{{SUBTITLE}} · {{DATE}} · {{PHOTOGRAPHER}}">
+<meta property="og:image" content="{{OG_IMAGE}}">
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="preload" as="image" href="{{COVER}}">
+</head>
+<body>
+
+<header class="cover" id="top">
+  <img class="cover-img" src="{{COVER}}" alt="" fetchpriority="high" style="object-position: {{COVER_POS}}">
+  <div class="cover-shade"></div>
+  <div class="cover-brand">{{PHOTOGRAPHER}}</div>
+  <div class="cover-text">
+    <p class="eyebrow">{{SUBTITLE}}</p>
+    <h1>{{TITLE}}</h1>
+    <p class="cover-date">{{DATE}}</p>
+    <a href="#galerie" class="btn btn-outline-light">Galerie ansehen</a>
+  </div>
+  <a href="#galerie" class="cover-scroll" aria-label="Zur Galerie">
+    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+  </a>
+</header>
+
+<nav class="bar" id="bar">
+  <div class="bar-inner">
+    <a class="bar-title" href="#top">
+      <span class="bar-name">{{TITLE}}</span>
+      <span class="bar-by">{{PHOTOGRAPHER}}</span>
+    </a>
+    <div class="bar-sets" id="sets"></div>
+    <div class="bar-actions">
+      <button class="icon-btn" id="favToggle" type="button" title="Favoriten anzeigen" aria-pressed="false">
+        <svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg>
+        <span class="badge" id="favCount" hidden>0</span>
+      </button>
+      <button class="icon-btn" id="shareBtn" type="button" title="Link teilen">
+        <svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13v6.5h14V13"/></svg>
+      </button>
+      <button class="btn btn-dark" id="dlAllBtn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 19.5h14"/></svg>
+        <span>Herunterladen</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="galerie">
+  <div id="content"></div>
+</main>
+
+<footer class="foot">
+  <p class="foot-brand">{{PHOTOGRAPHER}}</p>
+  <p class="foot-tag">{{TAGLINE}}</p>
+  <p class="foot-links">{{FOOTER_LINKS}}</p>
+  <p class="foot-copy">© {{YEAR}} {{PHOTOGRAPHER}} · Alle Rechte vorbehalten</p>
+</footer>
+
+<!-- Lightbox -->
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Bildansicht">
+  <div class="lb-top">
+    <span class="lb-count" id="lbCount"></span>
+    <div class="lb-actions">
+      <button class="icon-btn" id="lbFav" type="button" title="Favorit (F)">
+        <svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg>
+      </button>
+      <button class="icon-btn" id="lbDl" type="button" title="Herunterladen (D)">
+        <svg viewBox="0 0 24 24"><path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 19.5h14"/></svg>
+      </button>
+      <button class="icon-btn" id="lbClose" type="button" title="Schließen (Esc)">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="lb-stage" id="lbStage">
+    <img id="lbImg" alt="">
+  </div>
+  <button class="lb-nav lb-prev" id="lbPrev" type="button" aria-label="Vorheriges Bild">
+    <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+  </button>
+  <button class="lb-nav lb-next" id="lbNext" type="button" aria-label="Nächstes Bild">
+    <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
+  <p class="lb-name" id="lbName"></p>
+</div>
+
+<!-- Download-Dialog -->
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-card">
+    <button class="icon-btn modal-close" id="modalClose" type="button" aria-label="Schließen">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <p class="eyebrow dark">Download</p>
+    <h3 id="modalTitle">{{TITLE}}</h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="application/json" id="gallery-data">{{DATA}}</script>
+<script src="../assets/gallery.js" defer></script>
+</body>
+</html>
