@@ -195,6 +195,18 @@ def make_resized(src, dst, size, quality):
     return w, h
 
 
+def download_base(site):
+    """Basis-URL der Originale: GitHub-Releases (githubRepo) oder eigener Speicher (downloadBaseUrl)."""
+    if site.get("githubRepo"):
+        return f"https://github.com/{site['githubRepo']}/releases/download"
+    return (site.get("downloadBaseUrl") or "").strip()
+
+
+def asset_name(rel):
+    """GitHub-Releases kennen keine Unterordner: 'Kapitel/Bild.jpg' → 'Kapitel-Bild.jpg'."""
+    return safe_name(rel.replace("/", "-"))
+
+
 def human_size(n):
     for unit in ["B", "KB", "MB", "GB"]:
         if n < 1024 or unit == "GB":
@@ -208,7 +220,8 @@ def build_gallery(g, site, out_root, pool):
     src_root, sets = scan_source(g["source"], g.get("groupBy"))
     out = out_root / slug
     out.mkdir(parents=True, exist_ok=True)
-    base = (site.get("downloadBaseUrl") or "").strip()
+    base = download_base(site)
+    on_github = bool(site.get("githubRepo"))
     allow_dl = g.get("allowDownload", True)
 
     jobs, used = [], set()
@@ -241,7 +254,10 @@ def build_gallery(g, site, out_root, pool):
             "size": f.stat().st_size,
         }
         if allow_dl:
-            img["dl"] = url_join(base, slug, rel) if base else f"p/{name}.jpg"
+            if on_github:
+                img["dl"] = url_join(base, slug, asset_name(rel))
+            else:
+                img["dl"] = url_join(base, slug, rel) if base else f"p/{name}.jpg"
         data_sets[id(s)]["images"].append(img)
         if cover is None or g.get("cover") in (f.name, rel):
             cover = img
@@ -256,7 +272,8 @@ def build_gallery(g, site, out_root, pool):
     zips = []
     if allow_dl and base:
         for z in sorted((DOWNLOADS / slug).glob("*.zip")):
-            zips.append({"name": z.name, "url": url_join(base, slug, "_zip", z.name),
+            zip_url = url_join(base, slug, z.name) if on_github else url_join(base, slug, "_zip", z.name)
+            zips.append({"name": z.name, "url": zip_url,
                          "size": z.stat().st_size, "sizeText": human_size(z.stat().st_size)})
 
     data = {
@@ -391,6 +408,8 @@ def cmd_zip(args):
 def cmd_upload(args):
     site = site_config()
     g = get_gallery(args.gallery)
+    if site.get("githubRepo"):
+        return upload_github(g, site)
     if not shutil.which("rclone"):
         sys.exit("rclone fehlt. Installieren mit:  brew install rclone   (Einrichtung siehe README)")
     remote = site.get("rcloneRemote", "").rstrip("/")
@@ -406,6 +425,61 @@ def cmd_upload(args):
         print("Lade ZIP-Pakete hoch …")
         subprocess.run(["rclone", "copy", str(zdir), f"{remote}/{g['slug']}/_zip", *flags], check=True)
     print("Upload fertig. Jetzt 'python3 build.py build' ausführen und die Website veröffentlichen.")
+
+
+def upload_github(g, site):
+    """Originale + ZIPs als Dateien eines GitHub-Release (Tag = Galeriename) hochladen."""
+    if not shutil.which("gh"):
+        sys.exit("GitHub-CLI fehlt. Installieren mit:  brew install gh   und dann:  gh auth login")
+    repo, slug = site["githubRepo"], g["slug"]
+    env = os.environ.copy()
+    if site.get("githubAccount"):
+        tok = subprocess.run(["gh", "auth", "token", "--user", site["githubAccount"]],
+                             capture_output=True, text=True).stdout.strip()
+        if tok:
+            env["GH_TOKEN"] = tok
+
+    def gh(*a, **kw):
+        return subprocess.run(["gh", *a, "--repo", repo], env=env, **kw)
+
+    if gh("release", "view", slug, capture_output=True).returncode != 0:
+        print(f"Lege Release '{slug}' an …")
+        gh("release", "create", slug, "--title", g.get("title", slug),
+           "--notes", "Originaldateien der Galerie.", check=True)
+    info = json.loads(gh("release", "view", slug, "--json", "assets",
+                         capture_output=True, text=True, check=True).stdout)
+    existing = {a["name"]: a["size"] for a in info["assets"]}
+
+    # Was hochgeladen werden muss: neue oder geänderte Dateien
+    _, sets = scan_source(g["source"], g.get("groupBy"))
+    wanted = [(f, asset_name(f"{s['dir']}/{f.name}" if s["dir"] else f.name)) for s in sets for f in s["files"]]
+    wanted += [(z, z.name) for z in sorted((DOWNLOADS / slug).glob("*.zip"))]
+    todo = [(f, n) for f, n in wanted if existing.get(n) != f.stat().st_size]
+    if len(wanted) > 1000:
+        sys.exit(f"Ein GitHub-Release fasst max. 1000 Dateien – diese Galerie hat {len(wanted)}.")
+    if not todo:
+        print("Alles schon hochgeladen.")
+        return
+
+    # GitHub benennt die Datei nach ihrem Namen → per Verknüpfung den gewünschten Namen geben
+    stage = DOWNLOADS / slug / "_upload"
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir(parents=True)
+    paths = []
+    for f, n in todo:
+        (stage / n).symlink_to(f.resolve())
+        paths.append(str(stage / n))
+    total = sum(f.stat().st_size for f, _ in todo)
+    print(f"Lade {len(todo)} Dateien ({human_size(total)}) zu github.com/{repo}/releases/tag/{slug} hoch …")
+    done = 0
+    for i in range(0, len(paths), 10):
+        batch = paths[i:i + 10]
+        gh("release", "upload", slug, *batch, "--clobber", check=True)
+        done += len(batch)
+        print(f"  {done}/{len(paths)}", flush=True)
+    shutil.rmtree(stage)
+    print("Upload fertig. Jetzt 'python3 build.py build' ausführen und pushen.")
 
 
 # ---------------------------------------------------------------- new

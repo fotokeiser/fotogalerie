@@ -1,15 +1,17 @@
 {
-  "photographer": "Studio Name",
+  "photographer": "Foto Keiser",
   "tagline": "Fotografie",
-  "website": "https://www.example.com",
-  "email": "hallo@example.com",
+  "website": "",
+  "email": "",
   "instagram": "",
-  "siteUrl": "",
+  "siteUrl": "https://fotokeiser.github.io/fotogalerie",
   "downloadBaseUrl": "",
   "rcloneRemote": "r2:fotogalerie",
   "outputDir": "docs",
   "previewSize": 2048,
   "thumbSize": 1000,
   "quality": 80,
-  "zipPartMaxGB": 2
+  "zipPartMaxGB": 1.9,
+  "githubRepo": "fotokeiser/fotogalerie",
+  "githubAccount": "fotokeiser"
 }

@@ -4,19 +4,50 @@ Professionelle Online-Galerie für Kundenfotos – im Stil von Pixieset/Squaresp
 Vollbild-Cover, Bildraster ohne Beschnitt, Lightbox, Favoriten, Download einzelner
 Bilder und „Alle herunterladen“ als ZIP-Pakete.
 
-## Wie das aufgebaut ist
+## So ist es eingerichtet (alles auf GitHub)
+
+| Teil | Wo |
+|---|---|
+| Website + Vorschaubilder | Repo `fotokeiser/fotogalerie`, Ordner `docs/` → **GitHub Pages**: https://fotokeiser.github.io/fotogalerie/ |
+| Originale + ZIP | **GitHub-Release** pro Galerie (Tag = Galeriename), z. B. `releases/tag/paris-thorn-v4q8` |
+
+Gesteuert über `githubRepo` und `githubAccount` in `site.config.json`.
+Grenzen: GitHub-Pages-Seite max. 1 GB (nur Vorschaubilder zählen, ca. 0,8 MB pro Foto),
+pro Release max. 1000 Dateien à max. 2 GB. Das Repo ist **öffentlich** – die Galerien
+sind nicht in Google, aber auf GitHub für jeden einsehbar.
+
+### Neue Galerie veröffentlichen (GitHub)
+
+```bash
+python3 build.py new name-xyz1
+```
+`galleries/name-xyz1/gallery.json` ausfüllen (`"groupBy": "day"` teilt nach Aufnahmetag
+in Kapitel), dann:
+
+```bash
+python3 build.py zip name-xyz1 && python3 build.py upload name-xyz1 && python3 build.py build
+```
+
+```bash
+git add -A && git commit -m "Galerie name-xyz1" && git push
+```
+
+Nach 1–2 Minuten ist sie unter `https://fotokeiser.github.io/fotogalerie/name-xyz1/` online.
+Wird die Seite irgendwann zu groß für GitHub Pages (> 1 GB), auf die Cloudflare-Variante
+unten umsteigen.
+
+---
+
+## Alternative: Cloudflare (Repo kann privat bleiben, keine Größengrenze)
 
 | Teil | Wo | Warum |
 |---|---|---|
-| Website + Vorschaubilder (≈ 0,5 MB/Foto) | GitHub-Repo → **Cloudflare Pages** | kostenlos, schnell, auch mit privatem Repo |
-| Originale + ZIPs (deine 8,5 GB) | **Cloudflare R2** | 10 GB gratis, danach 0,015 $/GB/Monat, **Downloads kostenlos** |
+| Website + Vorschaubilder | GitHub-Repo → **Cloudflare Pages** | kostenlos, auch mit privatem Repo |
+| Originale + ZIPs | **Cloudflare R2** | 10 GB gratis, danach 0,015 $/GB/Monat, Downloads kostenlos |
 
-**Warum nicht alles auf GitHub?** GitHub erlaubt max. 100 MB pro Datei und empfiehlt
-höchstens 1 GB pro Repo bzw. GitHub-Pages-Seite. 8,5 GB Originale passen da nicht rein.
-Außerdem müsste das Repo für kostenloses GitHub Pages öffentlich sein – dann könnte jeder
-die Kundenfotos im Repo sehen.
+Dafür in `site.config.json` `githubRepo` leeren und `downloadBaseUrl` setzen.
 
-## Einmalige Einrichtung
+## Einmalige Einrichtung (Cloudflare-Variante)
 
 ### 1. Eigene Daten eintragen
 `site.config.json` öffnen und Name, Website, E-Mail, Instagram eintragen.
