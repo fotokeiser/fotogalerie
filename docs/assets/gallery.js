@@ -39,7 +39,51 @@
     while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
     return (i >= 2 ? n.toFixed(1) : Math.round(n)).toString().replace(".", ",") + " " + u[i];
   }
+  // ---------- iPhone/iPad: über das Teilen-Menü direkt in die Fotos-App ----------
+  const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  const TO_PHOTOS = IOS && !!navigator.canShare && (() => {
+    try { return navigator.canShare({ files: [new File([""], "x.jpg", { type: "image/jpeg" })] }); }
+    catch { return false; }
+  })();
+  const filePromises = new Map(), fileReady = new Map();
+  function prepareFile(img) {
+    if (!filePromises.has(img.id)) {
+      const p = fetch(img.p)
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        .then((b) => {
+          const f = new File([b], img.name, { type: "image/jpeg" });
+          fileReady.set(img.id, f);
+          // Speicher am Handy schonen: nur die letzten 60 Bilder bereithalten
+          while (fileReady.size > 60) {
+            const k = fileReady.keys().next().value;
+            fileReady.delete(k); filePromises.delete(k);
+          }
+          return f;
+        })
+        .catch((e) => { filePromises.delete(img.id); throw e; });
+      filePromises.set(img.id, p);
+    }
+    return filePromises.get(img.id);
+  }
+  async function saveToPhotos(list) {
+    if (list.length > 50) { toast("Bitte höchstens 50 Fotos auf einmal sichern"); return; }
+    let files = list.map((i) => fileReady.get(i.id));
+    if (files.some((f) => !f)) {
+      toast(list.length > 1 ? `${list.length} Fotos werden vorbereitet …` : "Foto wird vorbereitet …");
+      try { files = await Promise.all(list.map(prepareFile)); }
+      catch { toast("Laden fehlgeschlagen – bitte nochmal versuchen"); return; }
+    }
+    try {
+      await navigator.share({ files });
+    } catch (e) {
+      // Safari erlaubt das Teilen-Menü nur direkt nach einem Tipp – beim zweiten Tipp ist alles bereit
+      if (e.name === "NotAllowedError") toast("Bereit – bitte nochmal auf Sichern tippen");
+    }
+  }
+
   function download(img) {
+    if (TO_PHOTOS) return saveToPhotos([img]);
     const a = document.createElement("a");
     a.href = img.dl;
     a.download = img.name;
@@ -50,6 +94,7 @@
   }
   async function downloadMany(list) {
     if (!list.length) return;
+    if (TO_PHOTOS) return saveToPhotos(list);
     toast(`${list.length} Fotos werden heruntergeladen …`);
     for (const img of list) {
       download(img);
@@ -156,7 +201,7 @@
       } else {
         const acts = document.createElement("div");
         acts.className = "section-actions";
-        if (data.download) acts.appendChild(button("btn btn-dark", ICON.dl + "<span>Favoriten herunterladen</span>", () => downloadMany(list)));
+        if (data.download) acts.appendChild(button("btn btn-dark", ICON.dl + `<span>${TO_PHOTOS ? "Favoriten in Fotos sichern" : "Favoriten herunterladen"}</span>`, () => downloadMany(list)));
         if (data.email) acts.appendChild(button("btn btn-line", ICON.mail + "<span>Auswahl senden</span>", () => sendSelection(list)));
         acts.appendChild(button("btn btn-line", ICON.copy + "<span>Liste kopieren</span>", () => copyList(list)));
         s.querySelector(".section-head").appendChild(acts);
@@ -292,7 +337,9 @@
     if (favs.size) {
       h += `<ul class="dl-list" style="border-top:0"><li><button type="button" data-act="favs"><span class="dl-label">${ICON.heart}Nur Favoriten</span><small>${favs.size} ${favs.size === 1 ? "Foto" : "Fotos"}</small></button></li></ul>`;
     }
-    h += `<p class="hint">Tipp: Am Computer herunterladen – die Dateien sind groß. ${data.originals ? "Die Fotos sind in Originalauflösung." : ""}</p>`;
+    h += TO_PHOTOS
+      ? `<p class="hint">Am iPhone: Foto öffnen, auf ↓ tippen und „Bild sichern“ wählen – es landet direkt in Ihrer Fotos-App. Das ZIP mit allen Originalen am besten am Computer laden.</p>`
+      : `<p class="hint">Tipp: Am Computer herunterladen – die Dateien sind groß. ${data.originals ? "Die Fotos sind in Originalauflösung." : ""}</p>`;
     modalBody.innerHTML = h;
     modal.hidden = false;
     document.body.style.overflow = "hidden";
@@ -348,6 +395,7 @@
     const big = new Image();
     big.onload = () => { if (token === lb.token) lbImg.src = img.p; };
     big.src = img.p;
+    if (TO_PHOTOS) prepareFile(img).catch(() => {});
     // Nachbarn vorladen
     [lb.list[lb.i + 1], lb.list[lb.i - 1]].forEach((n) => { if (n) new Image().src = n.p; });
   }
