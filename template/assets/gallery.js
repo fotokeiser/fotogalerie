@@ -74,7 +74,7 @@
       "</div>";
     const im = f.firstChild;
     im.addEventListener("load", () => f.classList.add("loaded"), { once: true });
-    im.src = img.t;
+    // src/srcset setzt erst layout(), sobald die Kachelgröße feststeht
     return f;
   }
 
@@ -90,14 +90,22 @@
   function layout(g) {
     const W = g.el.clientWidth;
     if (!W) return;
-    const gap = W < 600 ? 4 : W < 1100 ? 8 : 10;
-    const target = W < 600 ? 170 : W < 1100 ? 260 : 340;
+    // Große Kacheln: Handy/Tablet ca. 2, Desktop ca. 3 Hochformate pro Reihe
+    const gap = W < 600 ? 6 : W < 1100 ? 12 : 16;
+    const target = Math.min(900, W < 1100 ? W * 0.75 : W * 0.5);
     let y = 0, row = [], ar = 0;
     const place = (items, h) => {
       let x = 0;
       items.forEach((i) => {
-        const w = (g.images[i].w / g.images[i].h) * h;
+        const img = g.images[i], w = (img.w / img.h) * h;
         Object.assign(g.tiles[i].style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+        const im = g.tiles[i].firstChild;
+        im.sizes = Math.round(w) + "px";
+        if (!im.srcset) {
+          // Browser nimmt auf scharfen Bildschirmen automatisch die größere Version
+          im.srcset = `${img.t} ${img.w}w, ${img.p} ${Math.round(img.w * 2.048)}w`;
+          im.src = img.t;
+        }
         x += w + gap;
       });
       y += h + gap;

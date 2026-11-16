@@ -145,7 +145,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round
 .bar-actions .btn { margin-left: 10px; }
 
 /* ---------- Galerie ---------- */
-main { padding: 8px var(--pad) 40px; min-height: 60vh; scroll-margin-top: 72px; }
+main { padding: 8px var(--pad) 40px; min-height: 60vh; scroll-margin-top: 72px; max-width: 1760px; margin: 0 auto; }
 .section { padding-top: 40px; scroll-margin-top: 72px; }
 .section:first-child { padding-top: 24px; }
 .section-head { text-align: center; margin: 24px 0 40px; }
