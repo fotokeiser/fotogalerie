@@ -326,7 +326,15 @@ def fill(tpl, site, values):
     }
     for k, v in values.items():
         tpl = tpl.replace("{{" + k + "}}", html.escape(str(v)))
+    # Versionsnummer an CSS/JS hängen, damit Browser nach Änderungen nicht die alte Datei nehmen
+    for asset in ("style.css", "gallery.js"):
+        tpl = tpl.replace(f'assets/{asset}"', f'assets/{asset}?v={asset_version(asset)}"')
     return tpl.replace("{{FOOTER_LINKS}}", " <span>·</span> ".join(links))
+
+
+def asset_version(name):
+    import hashlib
+    return hashlib.sha1((TEMPLATE / "assets" / name).read_bytes()).hexdigest()[:8]
 
 
 def cmd_build(args):
