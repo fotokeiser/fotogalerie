@@ -408,7 +408,17 @@
   $("#lbClose").addEventListener("click", closeLb);
   $("#lbFav").addEventListener("click", () => toggleFav(lb.list[lb.i].id));
   $("#lbDl").addEventListener("click", () => download(lb.list[lb.i]));
-  $("#lbStage").addEventListener("click", (e) => { if (e.target !== lbImg) closeLb(); });
+  $("#lbStage").addEventListener("click", (e) => {
+    // Handy: unsichtbare Tippzonen – linkes Drittel zurück, rechtes Drittel weiter
+    if (matchMedia("(max-width: 600px), (pointer: coarse)").matches) {
+      const r = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      if (x < 0.35) go(-1);
+      else if (x > 0.65) go(1);
+      return;
+    }
+    if (e.target !== lbImg) closeLb();
+  });
 
   document.addEventListener("keydown", (e) => {
     if (!modal.hidden && e.key === "Escape") return closeModal();
